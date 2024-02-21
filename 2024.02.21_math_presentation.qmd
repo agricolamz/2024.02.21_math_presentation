@@ -1,0 +1,337 @@
+---
+title: "Встреча о сотрудничестве Факультета Математики и Школы Лингвистики"
+author: 
+  - Георгий Мороз
+date: "02/21/2024"
+date-format: "D.MM.YYYY"
+format: 
+  beamer:
+    theme: Singapore
+    mainfont: Brill
+    monofont: Iosevka
+    df-print: kable
+    pdf-engine: xelatex
+    cite-method: natbib
+    classoption: t
+    header-includes: |
+       \setbeamertemplate{footline}[page number]
+urlcolor: teal
+citecolor: teal
+echo: false
+bibliography: bibliography.bib
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| include: false
+library(tidyverse)
+library(treemapify)
+theme_set(theme_minimal()+theme(text = element_text(size = 16), legend.position = "bottom"))
+```
+
+# Моделирование вариативности на материале билингвальных корпусов
+
+## 8 устных билингавльных корпусов
+
+```{r}
+#| out-height: 92%
+#| fig-align: center
+
+read_tsv("https://raw.githubusercontent.com/LingConLab/LABsite_qmd/main/data.tsv") |> 
+  filter(subtype == "bilingual") |> 
+  distinct(name_ru, n_tokens) |> 
+  mutate(name_ru = str_c(name_ru, "\n", formatC(n_tokens, format="f", big.mark=",", digits=0), " ток.")) |> 
+  arrange(-n_tokens) |> 
+  ggplot(aes(area = n_tokens, label = name_ru))+
+  geom_treemap(fill = "white", color = "black", size = 5) +
+  geom_treemap_text() ->
+  bi_co
+
+ggsave(plot = bi_co, filename = "images/01_bilingual_corpora.png", bg = "white", width = 9, height = 7)
+
+knitr::include_graphics("images/01_bilingual_corpora.png")
+```
+
+## Нестандартные количественные конструкции в речи билингвов
+
+- система русских числительных сложная
+- системы числительных в L1 доступных нам корпусах значительно проще
+- количественные конструкции в речи билингвов исследовалась в работах [@stoynova19; @stoynova21]
+- В работе [@stoynova21] употребление нестанадартных конструкций объясняется контактом
+- Увидим ли мы такой же эффект на основе данных наших корпусов?
+
+## Данные
+
+- Сначала мы автоматически отобрали **7,376** контекстов
+- Для анализа мы отобрали **1,748** примеров
+
+(@) *Пешком ходил Верхний Дженгутай **пять километра**.* (дагест.)
+
+(@) *Этот меньше, после **двое аборт** делала одну.* (марийский)
+
+- Примеры размечены по некотрым параметрам
+    - лингвистическим
+        - коллокационность комбинации числительного + существительного
+        - тип числительного (собирательные *двое*, *трое*, паукальные *два*, *три*, другие)
+    - социолингвистическим
+        - год рождения
+        - пол
+        - образование
+        - первый язык
+
+## Моделирование
+
+Мы запустили иерархическую логистическую регрессию со смешанными эффектами, предсказывая **вероятность нестандартной формы**
+
+- основные эффекты
+    - коллокационность ***
+    - тип числительного ***
+    - образование **
+    - год рождения
+- случайные эффекты
+    - носитель вложен в первый язык
+
+## Результаты
+
+```{r}
+#| out-width: 100%
+knitr::include_graphics("images/02_results.png")
+```
+
+## А зачем нам математики?
+
+## Моделирование изменений вариативности
+
+-   ребенок (`Ch`), переменная *a*;
+-   двое родителей (`Fa`, `Mo`), переменная *a*;
+-   два друга из школы (`Fr1`, `Fr2`), переменная *b*;
+-   три однокласника (`Cl1`, `Cl2`, `Cl3`), переменная *b*;
+-   два преподавателя (`Te1`, `Te2`), переменная *b*;
+-   два знакомых родетелей (`PaFr1`, `PaFr2`), переменная *b*.
+
+## Моделирование изменений вариативности
+
+```{r}
+#| out-width: 100%
+
+knitr::include_graphics("images/03_prob_of_communicating_with_child.png")
+```
+
+## Моделирование изменений вариативности
+
+- Симулируем 1000 разговоров ребенка
+- В каждом разговоре ребенок наблюдает либо форму *a*, либо форму *b*
+- Описывать вероятность использование формы *a* или *b* можно при помощи бета-распределения
+- Априорное распределение можно взять, скажем Beta(1, 50)
+- В ходе симуляции ребенок наблюдает 310 форм *a* и 690 форм *b*
+- Результат изменений можно представить в виде байесовского апдейта бета распредления
+
+## Моделирование изменений вариативности
+
+```{r}
+#| out-width: 100%
+
+knitr::include_graphics("images/04_bayesian_update.png")
+```
+
+## Моделирование изменений вариативности
+
+- разве человек может упомнить все формы, что он слышал в жизни? наверное, нет
+- можно считать, что у него в голове есть лишь параметры бета распределений, которые он обновляет с каждым новым встреченным употреблением
+- а можно ввести функция забытия, чтобы он помнил лишь последние, скажем, 300 наблюдений
+- ...
+
+# Ландшафт науки (математика?)
+
+## [@gonzalez23]
+
+```{r}
+#| fig-align: center
+#| out-width: 64%
+
+knitr::include_graphics("images/05_landscape.png")
+```
+
+2D эмбеддинги на основе 21 миллиона аннотаций, которые были траснформированы в 768-мерное векторное пространство при помощи PubMedBERT [@gu21], а дальше сплюснутая в 2D при помощи t-SNE [@maaten08]. Цвета основаны на названиях журналов. [Вот тут интерактивная версия](https://static.nomic.ai/pubmed.html).
+
+## [@gonzalez23]
+
+```{r}
+#| out-width: 100%
+#| layout-ncol: 2
+
+knitr::include_graphics("images/06_landscape_by_year.png")
+knitr::include_graphics("images/07_covid.png")
+```
+
+Регион карты, посвященный Covid-19. Цвета приписаны на основе названий работ. Кроме того здесь есть около 15% работ не посвященных короновирусу.
+
+## [@gonzalez23]
+
+```{r}
+#| out-width: 100%
+#| layout-ncol: 2
+
+knitr::include_graphics("images/08_landscape_by_gender.png")
+knitr::include_graphics("images/09_education_surgery.png")
+```
+
+Статьи раскрашены по полу первого автора.
+
+## Карта репозиториев гитхаба (Андрей Кашча)
+
+```{r}
+#| out-width: 70%
+#| fig-align: center
+
+knitr::include_graphics("images/10_github_1.png")
+```
+
+<https://anvaka.github.io/map-of-github/>
+
+##  Ландшафт лингвистики
+
+- выбрать список журналов для анализа
+- извлечь аннотации для всех работ из выбранных журналов
+- использовать векторизатор и метод уменьшения размерностей для преобразования пространства аннотаций в 2D
+
+## Чистка аннотаций
+
+- заметки редактора
+- некрологи и поздравления
+- описания конференций
+- списки содержания книг
+- списки содержания выпусков журнала
+- аннотации отмененных (retracted) статей 
+- аннотации на отличном от английского языках
+- аннотации на нескольких языках
+- сообщения об отсутствии аннотации
+- acknowledgments вместо аннотации
+- библиографическое описание книги (в случаях рецензии)
+- начало статьи вместо аннотации (характерно для старых статей)
+- ошибки распознавания
+- слишком короткие/длинные аннотации
+
+```{r}
+database <- read_csv("/home/agricolamz/work/bureaucracy/linguistic_convergency/journals/umap/2023-11-29.csv")
+
+database |>
+  filter(field == "linguistics") |> 
+  nrow() ->
+  n_linguistic_abstracts
+```
+
+
+## Структура данных: `r n_linguistic_abstracts` строчек, `r ncol(database)` колонок
+
+- `id`: https://openalex.org/W3040611730
+- `doi`: https://doi.org/10.1075/fol.18056.dob
+- `author`: Nina Dobrushina 
+- `title`: Negation in complement clauses of fear-verbs 
+- `publication_year`: 2021
+- `journal`: Functions of Language
+- `issn_l`: 0929-998X
+- `first_page`: 121
+- `last_page`: 152 
+- `volume`: 28 
+- `issue`: 2
+- `is_retracted`: FALSE
+- `cited_by_count`: 1
+- `abstract`: \tiny Complement clauses of verbs of fear often contain expletive negation, which is negative marking without negative meaning. <...> \normalsize
+- `concepts`: \tiny Negation; Complement (music); Linguistics; Verb; Meaning (existential); Psychology; Mathematics; Computer science; Philosophy; Biochemistry; Chemistry; Complementation; Psychotherapist; Gene; Phenotype \normalsize
+- `retrieved`: 30-04-2023
+
+## Ландшафт лингвистических исследований
+
+```{r}
+#| out-width: 100%
+#| fig-align: center
+
+database |> 
+  filter(field == "linguistics") |> 
+  filter(umap_v1 < 2.5, umap_v2 < 5) ->
+  just_linguistics
+  
+just_linguistics  |> 
+  ggplot(aes(umap_v1, umap_v2))+
+  geom_point(size = 0.1, alpha = 0.2)+
+  theme_void()
+```
+
+## Наша полуавтоматическая разметка аннотаций   
+
+```{r}
+#| out-width: 100%
+#| fig-align: center
+
+abstract_annotation <- read_csv("/home/agricolamz/work/bureaucracy/linguistic_convergency/journals/first_results/annotated.csv")
+
+just_linguistics |>
+  left_join(abstract_annotation) |> 
+  group_by(type) |> 
+  summarize(umap_v1_mean = mean(umap_v1),
+            umap_v2_mean = mean(umap_v2)) ->
+  labels
+
+just_linguistics |> 
+  left_join(abstract_annotation) |> 
+  filter(!is.na(type)) |> 
+  ggplot(aes(umap_v1, umap_v2, color = type))+
+  geom_point(size = 0.1, alpha = 0.2, color = "grey80",
+             data = just_linguistics) +  
+  geom_point(size = 0.2, alpha = 0.5) +
+  geom_label(aes(umap_v1_mean, umap_v2_mean, label = type), data = labels, color = "black", alpha = 0.5)+
+  theme_void()+
+  theme(legend.position = "none")
+```
+
+## А что если добавить других дисциплин?
+
+\scriptsize
+
+```{r}
+database |> 
+  filter(field != "linguistics") |> 
+  mutate(journal = ifelse(is.na(journal), container.title, journal)) |> 
+  count(field, journal) |> 
+  arrange(desc(field))
+```
+
+## А что если добавить других дисциплин?
+
+```{r}
+#| out-width: 100%
+#| fig-align: center
+
+database |>
+  group_by(field) |> 
+  summarize(umap_v1_mean = mean(umap_v1),
+            umap_v2_mean = mean(umap_v2)) ->
+  labels
+
+database |>
+  ggplot(aes(umap_v1, umap_v2, color = field))+
+  geom_point(size = 0.1, alpha = 0.2) +
+  geom_label(aes(umap_v1_mean, umap_v2_mean, label = field), data = labels, color = "black")+
+  theme_void()+
+  theme(legend.position = "none")
+```
+
+
+## Математика
+
+```{r}
+database |> 
+  mutate(nchar = nchar(abstract)) |> 
+  group_by(field) |> 
+  mutate(length = mean(nchar)) |> 
+  ungroup() |> 
+  mutate(field = fct_reorder(field, length)) |> 
+  ggplot(aes(nchar, field))+
+  geom_violin()+
+  geom_point(aes(length), size = 2)+
+  labs(x = "length of abstract in symbols", y = "")
+```
+
+# Список литературы {.allowframebreaks}
